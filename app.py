@@ -179,11 +179,11 @@ def main():
             mod = 'Groq'
             
             
-        # User input for the blog topic
-        topic = st.text_input("Enter the Debate topic:")
-        depth = st.text_input("Enter the depth needed:")
+    # User input for the blog topic
+   topic = st.text_input("Enter the Debate topic:")
+   depth = st.text_input("Enter the depth needed:")
 
-        if st.button("Generate Debate"):
-            with st.spinner("Generating content..."):
-                generated_content = generate_text(llm, topic,depth)
-                st.markdown(generated_content)
+   if st.button("Generate Debate"):
+    with st.spinner("Generating content..."):
+        generated_content = generate_text(llm, topic,depth)
+        st.markdown(generated_content)
