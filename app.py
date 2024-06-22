@@ -105,8 +105,8 @@ def generate_text(llm, topic,depth):
 
 
     crew = Crew(
-    agents=[pro_topic, con_topic],
-    tasks=[task_pro, task_con],
+    agents=[manager,pro_topic, con_topic],
+    tasks=[manager_task,task_pro, task_con],
     verbose=2,
     context={"Debate topic": topic}
 )
