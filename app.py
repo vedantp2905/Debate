@@ -1,5 +1,9 @@
+from io import BytesIO
 import os
 import asyncio
+from docx import Document
+from langchain_groq import ChatGroq
+from openai import OpenAI
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -115,15 +119,19 @@ def generate_text(llm, topic,depth):
     return result
 
 def main():
-    st.header('Crawled Content Generator')
-    mod = None
-    with st.sidebar:
-        with st.form('Gemini/OpenAI'):
-            model = st.radio('Choose Your LLM', ['Gemini','OpenAI'])
+   st.header('AI Blog Content Generator')
+   mod = None
+   with st.sidebar:
+       with st.form('Gemini/OpenAI/Groq'):
+            # User selects the model (Gemini/Cohere) and enters API keys
+            model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
+            
             api_key = st.text_input(f'Enter your API key', type="password")
+            replicate_api_token = st.text_input('Enter Replicate API key', type="password")
             submitted = st.form_submit_button("Submit")
 
-    if api_key:
+   # Check if API key is provided and set up the language model accordingly
+   if api_key:
         if model == 'OpenAI':
             async def setup_OpenAI():
                 loop = asyncio.get_event_loop()
@@ -132,9 +140,7 @@ def main():
                     asyncio.set_event_loop(loop)
 
                 os.environ["OPENAI_API_KEY"] = api_key
-                
-                llm = ChatOpenAI(model='gpt-4-turbo',temperature=0.6, max_tokens=200,api_key=api_key)
-                print("OpenAI Configured")
+                llm = OpenAI(temperature=0.6,max_tokens=2000)
                 return llm
 
             llm = asyncio.run(setup_OpenAI())
@@ -151,20 +157,62 @@ def main():
                     model="gemini-1.5-flash",
                     verbose=True,
                     temperature=0.6,
-                    google_api_key=api_key
+                    google_api_key=api_key  # Use the API key from the environment variable
                 )
-                print("Gemini Configured")
                 return llm
 
             llm = asyncio.run(setup_gemini())
             mod = 'Gemini'
         
-    topic = st.text_input("Give a topic for debate")
-    depth = st.text_input("Enter depth required")
-    
-    if st.button("Generate Answer"):
+        elif model == 'Groq':
+            async def setup_groq():
+                loop = asyncio.get_event_loop()
+                if loop is None:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
 
-        with st.spinner("Generating Answer..."):
-        
-            generated_content = generate_text(llm, topic,depth)
-            st.markdown(generated_content)
+                llm = ChatGroq(
+                    api_key = api_key,
+                    model = 'llama3-70b-8192'
+                )
+                return llm
+
+            llm = asyncio.run(setup_groq())
+            mod = 'Groq'
+            
+            
+        # User input for the blog topic
+        topic = st.text_input("Enter the blog topic:")
+
+        if st.button("Generate Blog Content"):
+            with st.spinner("Generating content..."):
+                generated_content = generate_text(llm, topic)
+
+                content_lines = generated_content.split('\n')
+                first_line = content_lines[0]
+                remaining_content = '\n'.join(content_lines[1:])
+
+                st.markdown(first_line)
+                st.markdown(remaining_content)
+
+
+                doc = Document()
+
+                # Option to download content as a Word document
+                doc.add_heading(topic, 0)
+                doc.add_paragraph(first_line)
+                doc.add_paragraph(remaining_content)
+
+                buffer = BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+
+                st.download_button(
+                    label="Download as Word Document",
+                    data=buffer,
+                    file_name=f"{topic}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+
+if __name__ == "__main__":
+    main()
