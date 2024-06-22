@@ -159,12 +159,12 @@ def main():
             llm = asyncio.run(setup_gemini())
             mod = 'Gemini'
         
-        topic = st.text_input("Give a topic for debate")
-        depth = st.text_input("Enter depth required")
-        
-        if st.button("Generate Answer"):
+    topic = st.text_input("Give a topic for debate")
+    depth = st.text_input("Enter depth required")
+    
+    if st.button("Generate Answer"):
 
-            with st.spinner("Generating Answer..."):
-            
-                generated_content = generate_text(llm, topic,depth)
-                st.markdown(generated_content)
+        with st.spinner("Generating Answer..."):
+        
+            generated_content = generate_text(llm, topic,depth)
+            st.markdown(generated_content)
