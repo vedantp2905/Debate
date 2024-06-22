@@ -177,10 +177,10 @@ def main():
             llm = asyncio.run(setup_groq())
             
             
-            topic = st.text_input("Enter the Debate topic:")
-            depth = st.text_input("Enter the depth needed:")
+        topic = st.text_input("Enter the Debate topic:")
+        depth = st.text_input("Enter the depth needed:")
 
-            if st.button("Generate Debate"):
-                with st.spinner("Generating content..."):
-                    generated_content = generate_text(llm, topic,depth)
-                    st.markdown(generated_content)
+        if st.button("Generate Debate"):
+            with st.spinner("Generating content..."):
+                generated_content = generate_text(llm, topic,depth)
+                st.markdown(generated_content)
