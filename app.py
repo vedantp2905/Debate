@@ -120,7 +120,7 @@ def generate_text(llm, topic,depth):
 
 def main():
     
-    st.header('AI Newsletter Content Generator')
+    st.header('Debate Generator')
     mod = None
     
     global serp_api_key
@@ -129,7 +129,6 @@ def main():
         with st.form('Gemini/OpenAI/Groq'):
             model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
             api_key = st.text_input(f'Enter your API key', type="password")
-            serp_api_key = st.text_input(f'Enter your SerpAPI key', type="password")
             submitted = st.form_submit_button("Submit")
 
     if api_key and serp_api_key:
@@ -185,36 +184,15 @@ def main():
             llm = asyncio.run(setup_groq())
             mod = 'Groq'
 
-        topic = st.text_input("Enter the newsletter topic:")
+        topic = st.text_input("Enter the debate topic:")
+        depth = st.text_input("Enter the depth required:")
 
-        if st.button("Generate Newsletter Content"):
+
+        if st.button("Generate Content"):
             with st.spinner("Generating content..."):
-                generated_content = generate_text(llm, topic, serp_api_key)
+                generated_content = generate_text(llm, topic, depth)
 
-                content_lines = generated_content.split('\n')
-                first_line = content_lines[0]
-                remaining_content = '\n'.join(content_lines[1:])
-
-                st.markdown(first_line)
-                st.markdown(remaining_content)
-
-                doc = Document()
-
-                doc.add_heading(topic, 0)
-                doc.add_paragraph(first_line)
-                doc.add_paragraph(remaining_content)
-
-                buffer = BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
-    
-    
-                st.download_button(
-        label="Download as Word Document",
-        data=buffer,
-        file_name=f"{topic}.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-
+                st.markdown(generated_content)
+                
 if __name__ == "__main__":
     main()
