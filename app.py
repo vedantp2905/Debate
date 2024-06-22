@@ -111,23 +111,21 @@ def generate_text(llm, topic,depth):
     crew = Crew(
     agents=[manager,pro_topic, con_topic],
     tasks=[manager_task,task_pro, task_con],
-    verbose=2,
-    context={"Debate topic": topic}
+    verbose=2
+    
 )
 
     result = crew.kickoff(inputs=inputs)
     return result
 
 def main():
-   st.header('AI Blog Content Generator')
+   st.header('Debate Generator')
    mod = None
    with st.sidebar:
        with st.form('Gemini/OpenAI/Groq'):
             # User selects the model (Gemini/Cohere) and enters API keys
             model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
-            
             api_key = st.text_input(f'Enter your API key', type="password")
-            replicate_api_token = st.text_input('Enter Replicate API key', type="password")
             submitted = st.form_submit_button("Submit")
 
    # Check if API key is provided and set up the language model accordingly
@@ -182,37 +180,10 @@ def main():
             
             
         # User input for the blog topic
-        topic = st.text_input("Enter the blog topic:")
+        topic = st.text_input("Enter the Debate topic:")
+        depth = st.text_input("Enter the depth needed:")
 
-        if st.button("Generate Blog Content"):
+        if st.button("Generate Debate"):
             with st.spinner("Generating content..."):
-                generated_content = generate_text(llm, topic)
-
-                content_lines = generated_content.split('\n')
-                first_line = content_lines[0]
-                remaining_content = '\n'.join(content_lines[1:])
-
-                st.markdown(first_line)
-                st.markdown(remaining_content)
-
-
-                doc = Document()
-
-                # Option to download content as a Word document
-                doc.add_heading(topic, 0)
-                doc.add_paragraph(first_line)
-                doc.add_paragraph(remaining_content)
-
-                buffer = BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
-
-                st.download_button(
-                    label="Download as Word Document",
-                    data=buffer,
-                    file_name=f"{topic}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-
-if __name__ == "__main__":
-    main()
+                generated_content = generate_text(llm, topic,depth)
+                st.markdown(generated_content)
