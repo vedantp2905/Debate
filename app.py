@@ -88,7 +88,6 @@ def generate_text(llm, topic,depth):
                         strengthen the pro stance. The argument should be logically 
                         coherent and persuasive, showcasing a deep understanding of the 
                         topic and its nuances.""",
-    context=task_con,
     tools=[search_tool]
 )
 
@@ -103,7 +102,6 @@ def generate_text(llm, topic,depth):
                         strengthen the pro stance. The argument should be logically 
                         coherent and persuasive, showcasing a deep understanding of the 
                         topic and its nuances.""",
-        context = task_pro,
         tools=[search_tool]
     )
 
