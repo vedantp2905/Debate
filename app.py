@@ -119,8 +119,9 @@ def generate_text(llm, topic,depth):
     return result
 
 def main():
+    
    st.header('Debate Generator')
-   mod = None
+   
    with st.sidebar:
        with st.form('Gemini/OpenAI/Groq'):
             # User selects the model (Gemini/Cohere) and enters API keys
@@ -142,7 +143,6 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_OpenAI())
-            mod = 'OpenAI'
 
         elif model == 'Gemini':
             async def setup_gemini():
@@ -160,7 +160,6 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_gemini())
-            mod = 'Gemini'
         
         elif model == 'Groq':
             async def setup_groq():
@@ -176,14 +175,12 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_groq())
-            mod = 'Groq'
             
             
-    # User input for the blog topic
-   topic = st.text_input("Enter the Debate topic:")
-   depth = st.text_input("Enter the depth needed:")
+            topic = st.text_input("Enter the Debate topic:")
+            depth = st.text_input("Enter the depth needed:")
 
-   if st.button("Generate Debate"):
-    with st.spinner("Generating content..."):
-        generated_content = generate_text(llm, topic,depth)
-        st.markdown(generated_content)
+            if st.button("Generate Debate"):
+                with st.spinner("Generating content..."):
+                    generated_content = generate_text(llm, topic,depth)
+                    st.markdown(generated_content)
