@@ -7,3 +7,4 @@ langchain-core
 pysqlite3-binary
 duckduckgo_search
 langchain-community
+langchain-groq
