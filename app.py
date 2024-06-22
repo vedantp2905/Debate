@@ -120,17 +120,19 @@ def generate_text(llm, topic,depth):
 
 def main():
     
-   st.header('Debate Generator')
-   
-   with st.sidebar:
-       with st.form('Gemini/OpenAI/Groq'):
-            # User selects the model (Gemini/Cohere) and enters API keys
+    st.header('AI Newsletter Content Generator')
+    mod = None
+    
+    global serp_api_key
+    
+    with st.sidebar:
+        with st.form('Gemini/OpenAI/Groq'):
             model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
             api_key = st.text_input(f'Enter your API key', type="password")
+            serp_api_key = st.text_input(f'Enter your SerpAPI key', type="password")
             submitted = st.form_submit_button("Submit")
 
-   # Check if API key is provided and set up the language model accordingly
-   if api_key:
+    if api_key and serp_api_key:
         if model == 'OpenAI':
             async def setup_OpenAI():
                 loop = asyncio.get_event_loop()
@@ -139,10 +141,13 @@ def main():
                     asyncio.set_event_loop(loop)
 
                 os.environ["OPENAI_API_KEY"] = api_key
-                llm = OpenAI(temperature=0.6,max_tokens=2000)
+                llm = ChatOpenAI(temperature=0.6, max_tokens=2000)
+                print("OpenAI Configured")
                 return llm
 
             llm = asyncio.run(setup_OpenAI())
+            mod = 'Gemini'
+
 
         elif model == 'Gemini':
             async def setup_gemini():
@@ -155,12 +160,15 @@ def main():
                     model="gemini-1.5-flash",
                     verbose=True,
                     temperature=0.6,
-                    google_api_key=api_key  # Use the API key from the environment variable
+                    google_api_key=api_key
                 )
+                print("Gemini Configured")
                 return llm
 
             llm = asyncio.run(setup_gemini())
-        
+            mod = 'Gemini'
+
+            
         elif model == 'Groq':
             async def setup_groq():
                 loop = asyncio.get_event_loop()
@@ -175,12 +183,38 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_groq())
-            
-            
-        topic = st.text_input("Enter the Debate topic:")
-        depth = st.text_input("Enter the depth needed:")
+            mod = 'Groq'
 
-        if st.button("Generate Debate"):
+        topic = st.text_input("Enter the newsletter topic:")
+
+        if st.button("Generate Newsletter Content"):
             with st.spinner("Generating content..."):
-                generated_content = generate_text(llm, topic,depth)
-                st.markdown(generated_content)
+                generated_content = generate_text(llm, topic, serp_api_key)
+
+                content_lines = generated_content.split('\n')
+                first_line = content_lines[0]
+                remaining_content = '\n'.join(content_lines[1:])
+
+                st.markdown(first_line)
+                st.markdown(remaining_content)
+
+                doc = Document()
+
+                doc.add_heading(topic, 0)
+                doc.add_paragraph(first_line)
+                doc.add_paragraph(remaining_content)
+
+                buffer = BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+    
+    
+                st.download_button(
+        label="Download as Word Document",
+        data=buffer,
+        file_name=f"{topic}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+if __name__ == "__main__":
+    main()
