@@ -89,9 +89,8 @@ def generate_text(llm, topic,depth):
                    6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebutta round.
                    7- Each debater must give a closing argument""",
     agent=manager,
-    expected_output="Successfull management of the debate according to the task description",
-    context=[{'depth': depth}]  # Wrap the dictionary inside a list
-)
+    expected_output="Successfull management of the debate according to the task description"
+    )
 
 
     
