@@ -21,68 +21,97 @@ def generate_text(llm, topic,depth):
     inputs = {'topic': topic}
    
     pro_topic = Agent(
-        role='Proponent of Topic',
-        goal=f"""Present the most convincing arguments in favor of the topic: {topic},
-        using factual evidence and persuasive rhetoric.Make sure to conterargument opponent""",
-        backstory="""You are an exceptional debater, having recently won the prestigious
-        World Universities Debating Championship. Your expertise lies in constructing
-        compelling arguments that strongly support your stance on any given topic.
-        You possess a keen ability to present facts persuasively, ensuring your
-        points are both convincing and grounded in reality.""",
-        verbose=True,
-        allow_delegation=False,
-        llm=llm
+    role='Proponent of Topic',
+    goal="""Present the most convincing arguments in favor of the topic: {topic},
+    using factual evidence and persuasive rhetoric.""",
+    backstory="""You are an exceptional debater, having recently won the prestigious
+    World Universities Debating Championship. Your expertise lies in constructing
+    compelling arguments that strongly support your stance on any given topic.
+    You possess a keen ability to present facts persuasively, ensuring your
+    points are both convincing and grounded in reality.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm
     )
 
     con_topic = Agent(
-        role='Opponent of Topic',
-        goal="""Present the most convincing arguments against the topic,
-        using logical reasoning and ethical considerations. Make sure to conterargument opponent""",
-        backstory="""You are a distinguished debater, recognized for your analytical
-        skills and ethical reasoning. Recently, you were a finalist in the World
-        Universities Debating Championship. Your strength lies in deconstructing
-        arguments and highlighting potential flaws and ethical issues. You excel at
-        presenting well-rounded and thoughtful counterarguments.""",
-        verbose=True,
-        allow_delegation=False,
-        llm=llm
+    role='Opponent of Topic',
+    goal="""Present the most convincing arguments against the topic: {topic},
+    using logical reasoning and ethical considerations.""",
+    backstory="""You are a distinguished debater, recognized for your analytical
+    skills and ethical reasoning. Recently, you were a finalist in the World
+    Universities Debating Championship. Your strength lies in deconstructing
+    arguments and highlighting potential flaws and ethical issues. You excel at
+    presenting well-rounded and thoughtful counterarguments.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm
     )
 
-    
+    writer = Agent(
+    role='Debate Moderator and Summarizer',
+    goal="""Objectively moderate the debate, ensure fair play, and provide an
+    unbiased summary of both sides' arguments. Synthesize the key points,
+    evidence, and rhetorical strategies used by each side into a cohesive
+    report that helps the audience understand the full scope of the debate.""",
+    backstory="""You are a highly respected journalist and author, known for
+    your impartiality and clarity in reporting complex issues. You have
+    moderated presidential debates and written award-winning articles that
+    break down intricate topics for the general public. Your reputation is
+    built on your ability to remain neutral, to synthesize diverse viewpoints,
+    and to articulate complex arguments in a way that's accessible to all.""",
+    verbose=True,
+    allow_delegation=False,
+    context={
+    "pro_topic": pro_topic,
+    "con_topic": con_topic
+    },
+    llm=llm
+    )
+
     task_pro = Task(
-    description=f'''Research and Gather Evidence on {topic} using the provided search tool.
-                    Using the evidence, write a concise argument supporting the topic taking into 
-                    consideration the opposition's argument.''',
+    description="""Research and Gather Evidence on {topic}""",
     agent=pro_topic,
-    expected_output="""A well-researched and structured argument supporting the topic, 
-                        addressing potential counterarguments and providing evidence to 
-                        strengthen the pro stance. The argument should be logically 
-                        coherent and persuasive, showcasing a deep understanding of the 
-                        topic and its nuances.""",
+    expected_output="""A comprehensive list of compelling evidence, statistics,
+    and expert opinions supporting the topic, sourced from reputable and
+    credible publications and experts.""",
     tools=[search_tool]
-)
+    )
 
 
     task_con = Task(
-        description=(f'''Research and Gather Evidence on {topic} using search tool given to you.
-                     Using the Evidence write a concise argument against the topic taking into 
-                     consideration opposition's argument'''),
-        agent=con_topic,
-        expected_output="""A well-researched and structured argument against the topic, 
-                        addressing potential counterarguments and providing evidence to 
-                        strengthen the pro stance. The argument should be logically 
-                        coherent and persuasive, showcasing a deep understanding of the 
-                        topic and its nuances.""",
-        tools=[search_tool]
+    description="""Research and Gather Evidence on {topic}""",
+    agent=con_topic,
+    expected_output="""A comprehensive list of compelling evidence,
+    statistics, and expert opinions opposing the topic, sourced from
+    reputable and credible publications and experts.""",
+    tools=[search_tool]
+    )
+
+
+    task_writer = Task(
+    description="""
+    Moderate the debate between the proponent and opponent,
+    ensuring fair play. Then, provide an unbiased summary of both sides'
+    arguments, synthesizing key points, evidence, and rhetorical strategies
+    into a cohesive report. 
+    """,
+    agent=writer,
+    expected_output="""
+    A well-structured debate transcript featuring opening
+    statements, rebuttals based on pro_topic and con_topic outputs, and
+    closing remarks from both sides, followed by an impartial summary that
+    captures the essence of each argument.
+    """
     )
 
 
     crew = Crew(
-    agents=[pro_topic, con_topic],
-    tasks=[task_pro, task_con],
-    verbose=2
-    
-)
+    agents=[pro_topic, con_topic, writer],
+    tasks=[task_pro, task_con, task_writer],
+    verbose=2,
+    context={"topic": topic}
+    )
 
     result = crew.kickoff(inputs=inputs)
     return result
