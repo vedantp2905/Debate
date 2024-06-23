@@ -27,6 +27,7 @@ def generate_text(llm, topic,depth):
     across various domains. Skilled in maintaining decorum, managing time efficiently,
     and resolving unforeseen issues. Decisive and calm under pressure, ensuring
     successful and engaging debates.""",
+    verbose=True,
     allow_delegation=True,
     llm=llm
 )
@@ -72,10 +73,6 @@ def generate_text(llm, topic,depth):
     and to articulate complex arguments in a way that's accessible to all.""",
     verbose=True,
     allow_delegation=False,
-    context={
-    "pro_topic": pro_topic,
-    "con_topic": con_topic
-    },
     llm=llm
     )
 
@@ -89,8 +86,7 @@ def generate_text(llm, topic,depth):
                    6- Each subsequent rebuttal round must build on the previous rebuttal round and delve deeper into the points presented in the previous rebuttal round.
                    7- Each debater must give a closing argument""",
     agent=manager,
-    expected_output="Successful management of the debate according to the task description",
-    context=[{'depth': depth}]  # Wrap the dictionary inside a list
+    expected_output="Successful management of the debate according to the task description"
 )
 
     task_pro = Task(
@@ -100,7 +96,7 @@ def generate_text(llm, topic,depth):
         and expert opinions supporting the topic, sourced from reputable and
         credible publications and experts.""",
         tools=[search_tool],
-        context=task_manager  # Pass the task_manager as context
+        context=[task_manager]
     )
 
     task_con = Task(
@@ -110,7 +106,7 @@ def generate_text(llm, topic,depth):
         statistics, and expert opinions opposing the topic, sourced from
         reputable and credible publications and experts.""",
         tools=[search_tool],
-        context=task_manager  # Pass the task_manager as context
+        context=[task_manager]  # Pass the task_manager as context
     )
 
     task_writer = Task(
@@ -121,7 +117,9 @@ def generate_text(llm, topic,depth):
         expected_output="""A well-structured debate transcript featuring opening
         statements, rebuttals based on pro_topic and con_topic outputs, and
         closing remarks from both sides, followed by an impartial summary that
-        captures the essence of the debate."""
+        captures the essence of the debate.
+        Follow the format given to the debate manager""",
+        context = [task_manager,task_pro,task_con]
     )
 
     crew = Crew(
