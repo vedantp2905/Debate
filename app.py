@@ -48,6 +48,7 @@ def generate_text(llm, topic,depth):
         llm=llm
     )
 
+    
     task_pro = Task(
     description=f'''Research and Gather Evidence on {topic} using the provided search tool.
                     Using the evidence, write a concise argument supporting the topic taking into 
@@ -79,6 +80,8 @@ def generate_text(llm, topic,depth):
     crew = Crew(
     agents=[pro_topic, con_topic],
     tasks=[task_pro, task_con],
+    verbose=2,
+
     manager_agent=  Agent(
     role='Debate Manager',
     goal="Ensure that the debate follows the specified format and guidelines",
@@ -89,7 +92,11 @@ def generate_text(llm, topic,depth):
     and rules. I will facilitate communication between the pro and against agents, monitor 
     the progress of the debate rounds, and intervene if necessary to maintain fairness and 
     decorum. My ultimate goal is to facilitate a constructive and enlightening debate that
-    promotes critical thinking and understanding of complex issues."""),
+    promotes critical thinking and understanding of complex issues.""",
+    verbose=True,
+    allow_delegation=True,
+    llm=llm
+),
     manager_task = Task(
         description="Manage the debate session to ensure adherence to format and rules",
         expected_output=f"""Debate session successfully managed according to format and guidelines
@@ -99,12 +106,7 @@ def generate_text(llm, topic,depth):
                            3. Lets take an example - Pro debater gives argument A. Against debater should take counterargue A and give
                            argument B. Then the Pro debater again should counterargue argument B and give argument C. The against debater
                            should again counterague argument C and then give argument D. This should go on until depth {depth} given by the user"""
-    ),
-    verbose=True,
-    allow_delegation=True,
-    llm=llm
-)
-    verbose=2
+    )
     
 )
 
