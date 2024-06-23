@@ -79,9 +79,6 @@ def generate_text(llm, topic,depth):
     llm=llm
     )
 
-    def generate_text(llm, topic, depth):
-    # Your existing code here
-
     task_manager = Task(
         description="Manage the debate flow according to the specified format",
         agent=manager,
