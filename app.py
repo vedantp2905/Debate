@@ -20,23 +20,6 @@ def generate_text(llm, topic,depth):
 
     inputs = {'topic': topic}
    
-    manager = Agent(
-    role='Debate Manager',
-    goal="Ensure that the debate follows the specified format and guidelines",
-    backstory="""As the Debate Manager, I have been entrusted with the responsibility
-    of overseeing and managing a crucial debate session. This debate is of significant 
-    importance as it aims to explore diverse perspectives on a contentious topic. My role 
-    is to ensure that the debate proceeds smoothly and adheres to the predetermined format 
-    and rules. I will facilitate communication between the pro and against agents, monitor 
-    the progress of the debate rounds, and intervene if necessary to maintain fairness and 
-    decorum. My ultimate goal is to facilitate a constructive and enlightening debate that
-    promotes critical thinking and understanding of complex issues.""",
-    verbose=True,
-    allow_delegation=True,
-    llm=llm
-)
-
-    
     pro_topic = Agent(
         role='Proponent of Topic',
         goal=f"""Present the most convincing arguments in favor of the topic: {topic},
@@ -63,19 +46,6 @@ def generate_text(llm, topic,depth):
         verbose=True,
         allow_delegation=False,
         llm=llm
-    )
-
-    
-    manager_task = Task(
-        description="Manage the debate session to ensure adherence to format and rules",
-        agent=manager,
-        expected_output=f"""Debate session successfully managed according to format and guidelines
-                           The format and guidelines are:
-                           1. Total arguments presented by each pro/against debater should be exactly equal to {depth}
-                           2. The arguments presented by each pro/against debater should build on each others argument
-                           3. Lets take an example - Pro debater gives argument A. Against debater should take counterargue A and give
-                           argument B. Then the Pro debater again should counterargue argument B and give argument C. The against debater
-                           should again counterague argument C and then give argument D. This should go on until depth {depth} given by the user"""
     )
 
     task_pro = Task(
@@ -107,8 +77,33 @@ def generate_text(llm, topic,depth):
 
 
     crew = Crew(
-    agents=[manager,pro_topic, con_topic],
-    tasks=[manager_task,task_pro, task_con],
+    agents=[pro_topic, con_topic],
+    tasks=[task_pro, task_con],
+    manager_agent=  Agent(
+    role='Debate Manager',
+    goal="Ensure that the debate follows the specified format and guidelines",
+    backstory="""As the Debate Manager, I have been entrusted with the responsibility
+    of overseeing and managing a crucial debate session. This debate is of significant 
+    importance as it aims to explore diverse perspectives on a contentious topic. My role 
+    is to ensure that the debate proceeds smoothly and adheres to the predetermined format 
+    and rules. I will facilitate communication between the pro and against agents, monitor 
+    the progress of the debate rounds, and intervene if necessary to maintain fairness and 
+    decorum. My ultimate goal is to facilitate a constructive and enlightening debate that
+    promotes critical thinking and understanding of complex issues.""",
+    manager_task = Task(
+        description="Manage the debate session to ensure adherence to format and rules",
+        expected_output=f"""Debate session successfully managed according to format and guidelines
+                           The format and guidelines are:
+                           1. Total arguments presented by each pro/against debater should be exactly equal to {depth}
+                           2. The arguments presented by each pro/against debater should build on each others argument
+                           3. Lets take an example - Pro debater gives argument A. Against debater should take counterargue A and give
+                           argument B. Then the Pro debater again should counterargue argument B and give argument C. The against debater
+                           should again counterague argument C and then give argument D. This should go on until depth {depth} given by the user"""
+    )
+    verbose=True,
+    allow_delegation=True,
+    llm=llm
+)
     verbose=2
     
 )
@@ -120,9 +115,7 @@ def main():
     
     st.header('Debate Generator')
     mod = None
-    
-    global serp_api_key
-    
+        
     with st.sidebar:
         with st.form('Gemini/OpenAI/Groq'):
             model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
