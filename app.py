@@ -85,59 +85,52 @@ def generate_text(llm, topic,depth):
                    2- Both proponent and against debaters must present opening statements
                    3- The opponents must rebuttal based on the output of their opponent 
                    4- The total rebuttal rounds should be equal to the: {depth}
-                   5- The first rebuttal round should be based on opening statemnts of the dbeaters
-                   6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebutta round.
+                   5- The first rebuttal round should be based on opening statements of the debaters
+                   6- Each subsequent rebuttal round must build on the previous rebuttal round and delve deeper into the points presented in the previous rebuttal round.
                    7- Each debater must give a closing argument""",
     agent=manager,
-    expected_output="Successfull management of the debate according to the task description"
-    )
+    expected_output="Successful management of the debate according to the task description",
+    context=[{'depth': depth}]  # Wrap the dictionary inside a list
+)
 
-
-    
     task_pro = Task(
-    description=f'Research and Gather Evidence on {topic}',
-    agent=pro_topic,
-    expected_output="""A comprehensive list of compelling evidence, statistics,
-    and expert opinions supporting the topic, sourced from reputable and
-    credible publications and experts.""",
-    tools=[search_tool],
-    context = task_manager,
+        description=f'Research and Gather Evidence on {topic}',
+        agent=pro_topic,
+        expected_output="""A comprehensive list of compelling evidence, statistics,
+        and expert opinions supporting the topic, sourced from reputable and
+        credible publications and experts.""",
+        tools=[search_tool],
+        context=task_manager  # Pass the task_manager as context
     )
-
 
     task_con = Task(
-    description=f'Research and Gather Evidence on {topic}',
-    agent=con_topic,
-    expected_output="""A comprehensive list of compelling evidence,
-    statistics, and expert opinions opposing the topic, sourced from
-    reputable and credible publications and experts.""",
-    tools=[search_tool],
-    context = task_manager,
+        description=f'Research and Gather Evidence on {topic}',
+        agent=con_topic,
+        expected_output="""A comprehensive list of compelling evidence,
+        statistics, and expert opinions opposing the topic, sourced from
+        reputable and credible publications and experts.""",
+        tools=[search_tool],
+        context=task_manager  # Pass the task_manager as context
     )
-
 
     task_writer = Task(
-    description="""
-    Provide an unbiased summary of both sides'
-    arguments, synthesizing key points, evidence, and rhetorical strategies
-    into a cohesive report. 
-    """,
-    agent=writer,
-    expected_output=f"""
-    A well-structured debate transcript featuring opening
-    statements, rebuttals based on pro_topic and con_topic outputs, and
-    closing remarks from both sides, followed by an impartial summary that
-    captures the essence of the debate
-    """
+        description="""Provide an unbiased summary of both sides'
+        arguments, synthesizing key points, evidence, and rhetorical strategies
+        into a cohesive report.""",
+        agent=writer,
+        expected_output="""A well-structured debate transcript featuring opening
+        statements, rebuttals based on pro_topic and con_topic outputs, and
+        closing remarks from both sides, followed by an impartial summary that
+        captures the essence of the debate."""
     )
-
 
     crew = Crew(
-    agents=[manager,pro_topic, con_topic, writer],
-    tasks=[task_manager,task_pro, task_con, task_writer],
-    verbose=2,
-    context={"topic": topic}
+        agents=[manager, pro_topic, con_topic, writer],
+        tasks=[task_manager, task_pro, task_con, task_writer],
+        verbose=2,
+        context={"topic": topic}
     )
+
 
     result = crew.kickoff(inputs=inputs)
     return result
