@@ -22,7 +22,7 @@ def generate_text(llm, topic,depth):
    
     pro_topic = Agent(
     role='Proponent of Topic',
-    goal="""Present the most convincing arguments in favor of the topic: {topic},
+    goal="""Present the most convincing arguments in favor of the topic,
     using factual evidence and persuasive rhetoric.""",
     backstory="""You are an exceptional debater, having recently won the prestigious
     World Universities Debating Championship. Your expertise lies in constructing
@@ -36,7 +36,7 @@ def generate_text(llm, topic,depth):
 
     con_topic = Agent(
     role='Opponent of Topic',
-    goal="""Present the most convincing arguments against the topic: {topic},
+    goal="""Present the most convincing arguments against the topic,
     using logical reasoning and ethical considerations.""",
     backstory="""You are a distinguished debater, recognized for your analytical
     skills and ethical reasoning. Recently, you were a finalist in the World
@@ -61,7 +61,7 @@ def generate_text(llm, topic,depth):
     built on your ability to remain neutral, to synthesize diverse viewpoints,
     and to articulate complex arguments in a way that's accessible to all.""",
     verbose=True,
-    allow_delegation=False,
+    allow_delegation=True,
     context={
     "pro_topic": pro_topic,
     "con_topic": con_topic
@@ -70,7 +70,7 @@ def generate_text(llm, topic,depth):
     )
 
     task_pro = Task(
-    description="""Research and Gather Evidence on {topic}""",
+    description=f'Research and Gather Evidence on {topic}',
     agent=pro_topic,
     expected_output="""A comprehensive list of compelling evidence, statistics,
     and expert opinions supporting the topic, sourced from reputable and
@@ -80,7 +80,7 @@ def generate_text(llm, topic,depth):
 
 
     task_con = Task(
-    description="""Research and Gather Evidence on {topic}""",
+    description=f'Research and Gather Evidence on {topic}',
     agent=con_topic,
     expected_output="""A comprehensive list of compelling evidence,
     statistics, and expert opinions opposing the topic, sourced from
@@ -97,11 +97,19 @@ def generate_text(llm, topic,depth):
     into a cohesive report. 
     """,
     agent=writer,
-    expected_output="""
+    expected_output=f"""
     A well-structured debate transcript featuring opening
     statements, rebuttals based on pro_topic and con_topic outputs, and
     closing remarks from both sides, followed by an impartial summary that
     captures the essence of each argument.
+    Follow these guidelines and delegate the work to agents as needed if nescessary:
+    The arugments must go upto a dept given by human input. The depth is: {depth}
+    The depth mens that each debater pro/con should present as many number of points as the depth only
+    The debate starts with the pro debater. The con debater should take into consideration the point made by the pro debater and counterargue.
+    The pro debater should counterargue the point made by the con debater and dwelve deeper. 
+    And then con debater should do the same. The number of rounds should go till the depth is reached.
+    
+        
     """
     )
 
