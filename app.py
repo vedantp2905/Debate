@@ -89,7 +89,7 @@ def generate_text(llm, topic,depth):
     and rules. I will facilitate communication between the pro and against agents, monitor 
     the progress of the debate rounds, and intervene if necessary to maintain fairness and 
     decorum. My ultimate goal is to facilitate a constructive and enlightening debate that
-    promotes critical thinking and understanding of complex issues.""",
+    promotes critical thinking and understanding of complex issues."""),
     manager_task = Task(
         description="Manage the debate session to ensure adherence to format and rules",
         expected_output=f"""Debate session successfully managed according to format and guidelines
