@@ -20,6 +20,17 @@ def generate_text(llm, topic,depth):
 
     inputs = {'topic': topic}
    
+    manager = Agent(
+    role='Debate Manager',
+    goal='Ensure adherence to debate guidelines and format',
+    backstory="""Experienced Debate Manager adept at overseeing structured debates
+    across various domains. Skilled in maintaining decorum, managing time efficiently,
+    and resolving unforeseen issues. Decisive and calm under pressure, ensuring
+    successful and engaging debates.""",
+    allow_delegation=True,
+    llm=llm
+)
+
     pro_topic = Agent(
     role='Proponent of Topic',
     goal="""Present the most convincing arguments in favor of the topic,
@@ -49,9 +60,8 @@ def generate_text(llm, topic,depth):
     )
 
     writer = Agent(
-    role='Debate Moderator and Summarizer',
-    goal="""Objectively moderate the debate, ensure fair play, and provide an
-    unbiased summary of both sides' arguments. Synthesize the key points,
+    role='Debate Summarizer',
+    goal="""Provide an unbiased summary of both sides' arguments. Synthesize the key points,
     evidence, and rhetorical strategies used by each side into a cohesive
     report that helps the audience understand the full scope of the debate.""",
     backstory="""You are a highly respected journalist and author, known for
@@ -61,7 +71,7 @@ def generate_text(llm, topic,depth):
     built on your ability to remain neutral, to synthesize diverse viewpoints,
     and to articulate complex arguments in a way that's accessible to all.""",
     verbose=True,
-    allow_delegation=True,
+    allow_delegation=False,
     context={
     "pro_topic": pro_topic,
     "con_topic": con_topic
@@ -69,13 +79,55 @@ def generate_text(llm, topic,depth):
     llm=llm
     )
 
+    def generate_text(llm, topic, depth):
+    # Your existing code here
+
+    task_manager = Task(
+        description="Manage the debate flow according to the specified format",
+        agent=manager,
+        expected_output="Successful management of the debate flow as per guidelines",
+        context={
+            "pro_topic": pro_topic,
+            "con_topic": con_topic,
+            "depth": depth
+        },
+    )
+
+    # Modify the kickoff function to follow the specified format
+    def kickoff_function(inputs):
+        proponent_turn = True  # Start with the proponent
+        total_turns = 0
+
+        while total_turns < int(depth):
+            if proponent_turn:
+                pro_output = pro_topic.kickoff(inputs)
+                con_output = con_topic.kickoff(inputs)
+                total_turns += 1
+            else:
+                con_output = con_topic.kickoff(inputs)
+                pro_output = pro_topic.kickoff(inputs)
+                total_turns += 1
+
+            proponent_turn = not proponent_turn  # Switch turn after each round
+
+        # Generate the final debate summary
+        summary_output = writer.kickoff(inputs)
+        return {
+            "pro_output": pro_output,
+            "con_output": con_output,
+            "summary_output": summary_output
+        }
+
+    task_manager.kickoff = kickoff_function  # Override the kickoff function for task_manager
+
     task_pro = Task(
     description=f'Research and Gather Evidence on {topic}',
     agent=pro_topic,
     expected_output="""A comprehensive list of compelling evidence, statistics,
     and expert opinions supporting the topic, sourced from reputable and
     credible publications and experts.""",
-    tools=[search_tool]
+    tools=[search_tool],
+    context = task_manager,
     )
 
 
@@ -85,14 +137,14 @@ def generate_text(llm, topic,depth):
     expected_output="""A comprehensive list of compelling evidence,
     statistics, and expert opinions opposing the topic, sourced from
     reputable and credible publications and experts.""",
-    tools=[search_tool]
+    tools=[search_tool],
+    context = task_manager,
     )
 
 
     task_writer = Task(
     description="""
-    Moderate the debate between the proponent and opponent,
-    ensuring fair play. Then, provide an unbiased summary of both sides'
+    Provide an unbiased summary of both sides'
     arguments, synthesizing key points, evidence, and rhetorical strategies
     into a cohesive report. 
     """,
@@ -101,22 +153,14 @@ def generate_text(llm, topic,depth):
     A well-structured debate transcript featuring opening
     statements, rebuttals based on pro_topic and con_topic outputs, and
     closing remarks from both sides, followed by an impartial summary that
-    captures the essence of each argument.
-    Follow these guidelines and delegate the work to agents as needed if nescessary:
-    The arugments must go upto a dept given by human input. The depth is: {depth}
-    The depth mens that each debater pro/con should present as many number of points as the depth only
-    The debate starts with the pro debater. The con debater should take into consideration the point made by the pro debater and counterargue.
-    The pro debater should counterargue the point made by the con debater and dwelve deeper. 
-    And then con debater should do the same. The number of rounds should go till the depth is reached.
-    
-        
+    captures the essence of the debate
     """
     )
 
 
     crew = Crew(
-    agents=[pro_topic, con_topic, writer],
-    tasks=[task_pro, task_con, task_writer],
+    agents=[manager,pro_topic, con_topic, writer],
+    tasks=[task_manager,task_pro, task_con, task_writer],
     verbose=2,
     context={"topic": topic}
     )
