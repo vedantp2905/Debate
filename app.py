@@ -99,7 +99,7 @@ def generate_text(llm, topic,depth):
                            3. Lets take an example - Pro debater gives argument A. Against debater should take counterargue A and give
                            argument B. Then the Pro debater again should counterargue argument B and give argument C. The against debater
                            should again counterague argument C and then give argument D. This should go on until depth {depth} given by the user"""
-    )
+    ),
     verbose=True,
     allow_delegation=True,
     llm=llm
