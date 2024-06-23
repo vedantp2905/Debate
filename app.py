@@ -90,9 +90,9 @@ def generate_text(llm, topic,depth):
                    7- Each debater must give a closing argument""",
     agent=manager,
     expected_output="Successfull management of the debate according to the task description",
-    context = {'depth':depth}
-    
+    context=[{'depth': depth}]  # Wrap the dictionary inside a list
 )
+
 
     
     task_pro = Task(
