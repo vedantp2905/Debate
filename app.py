@@ -79,12 +79,12 @@ def generate_text(llm, topic,depth):
     task_manager = Task(
     description=f"""Manage the debate flow according to the specified format:
                    1- The debate should start with the proponent
-                   2- Both proponent and against debaters must present opening statements
-                   3- The opponents must rebuttal based on the output of their opponent 
+                   2- Both proponent and against debaters must present short concise opening statements
+                   3- The debaters must rebuttal based on the output of their opponent starting with the proponent 
                    4- The total rebuttal rounds should be equal to the: {depth}
                    5- The first rebuttal round should be based on opening statements of the debaters
-                   6- Each subsequent rebuttal round must build on the previous rebuttal round and delve deeper into the points presented in the previous rebuttal round.
-                   7- Each debater must give a closing argument""",
+                   6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebuttal round.
+                   7- Each debater must give a short and concise closing argument""",
     agent=manager,
     expected_output="Successful management of the debate according to the task description"
 )
