@@ -80,43 +80,21 @@ def generate_text(llm, topic,depth):
     )
 
     task_manager = Task(
-        description="Manage the debate flow according to the specified format",
-        agent=manager,
-        expected_output="Successful management of the debate flow as per guidelines",
-        context={
-            "pro_topic": pro_topic,
-            "con_topic": con_topic,
-            "depth": depth
-        },
-    )
+    description=f"""Manage the debate flow according to the specified format:
+                   1- The debate should start with the proponent
+                   2- Both proponent and against debaters must present opening statements
+                   3- The opponents must rebuttal based on the output of their opponent 
+                   4- The total rebuttal rounds should be equal to the: {depth}
+                   5- The first rebuttal round should be based on opening statemnts of the dbeaters
+                   6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebutta round.
+                   7- Each debater must give a closing argument""",
+    agent=manager,
+    expected_output="Successfull management of the debate according to the task description",
+    context = {'depth':depth}
+    
+)
 
-    # Modify the kickoff function to follow the specified format
-    def kickoff_function(inputs):
-        proponent_turn = True  # Start with the proponent
-        total_turns = 0
-
-        while total_turns < int(depth):
-            if proponent_turn:
-                pro_output = pro_topic.kickoff(inputs)
-                con_output = con_topic.kickoff(inputs)
-                total_turns += 1
-            else:
-                con_output = con_topic.kickoff(inputs)
-                pro_output = pro_topic.kickoff(inputs)
-                total_turns += 1
-
-            proponent_turn = not proponent_turn  # Switch turn after each round
-
-        # Generate the final debate summary
-        summary_output = writer.kickoff(inputs)
-        return {
-            "pro_output": pro_output,
-            "con_output": con_output,
-            "summary_output": summary_output
-        }
-
-    task_manager.kickoff = kickoff_function  # Override the kickoff function for task_manager
-
+    
     task_pro = Task(
     description=f'Research and Gather Evidence on {topic}',
     agent=pro_topic,
