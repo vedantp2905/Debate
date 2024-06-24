@@ -203,7 +203,30 @@ def main():
             with st.spinner("Generating content..."):
                 generated_content = generate_text(llm, topic, depth)
 
-                st.markdown(generated_content)
-                
+                content_lines = generated_content.split('\n')
+                first_line = content_lines[0]
+                remaining_content = '\n'.join(content_lines[1:])
+
+                st.markdown(first_line)
+                st.markdown(remaining_content)
+
+
+                doc = Document()
+
+                # Option to download content as a Word document
+                doc.add_heading(topic, 0)
+                doc.add_paragraph(first_line)
+                doc.add_paragraph(remaining_content)
+
+                buffer = BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+
+                st.download_button(
+                    label="Download as Word Document",
+                    data=buffer,
+                    file_name=f"{topic}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
 if __name__ == "__main__":
     main()
