@@ -32,7 +32,7 @@ def generate_text(llm, topic,depth):
     llm=llm
 )
 
-    pro_topic = Agent(
+    proponent = Agent(
     role='Proponent of Topic',
     goal="""Present the most convincing arguments in favor of the topic,
     using factual evidence and persuasive rhetoric.""",
@@ -46,7 +46,7 @@ def generate_text(llm, topic,depth):
     llm=llm
     )
 
-    con_topic = Agent(
+    opposition = Agent(
     role='Opponent of Topic',
     goal="""Present the most convincing arguments against the topic,
     using logical reasoning and ethical considerations.""",
@@ -78,20 +78,19 @@ def generate_text(llm, topic,depth):
 
     task_manager = Task(
     description=f"""Manage the debate flow according to the specified format:
-                   1- The debate should start with the proponent
-                   2- Both the debaters must present short concise opening statements
-                   3- The debaters must rebuttal based on the output of their opponent
+                   2- Both the debaters must present short concise opening statements starting with the proponent
+                   3- The debaters must rebuttal based on the output of their opponent starting with the proponent 
                    4- The total rebuttal rounds should be equal to the: {depth}
-                   5- The first rebuttal round should be based on opening statements of the debaters.The proponent should start the first rebuttal
+                   5- The first rebuttal round should be based on opening statements of the debaters.
                    6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebuttal round.
                    7- Each debater must give a short and concise closing argument""",
     agent=manager,
     expected_output="Successful management of the debate according to the task description"
 )
 
-    task_pro = Task(
+    task_proponent = Task(
         description=f'Research and Gather Evidence on {topic}',
-        agent=pro_topic,
+        agent=proponent,
         expected_output="""A comprehensive list of compelling evidence, statistics,
         and expert opinions supporting the topic, sourced from reputable and
         credible publications and experts.""",
@@ -99,9 +98,9 @@ def generate_text(llm, topic,depth):
         context=[task_manager]
     )
 
-    task_con = Task(
+    task_oppostion = Task(
         description=f'Research and Gather Evidence on {topic}',
-        agent=con_topic,
+        agent=opposition,
         expected_output="""A comprehensive list of compelling evidence,
         statistics, and expert opinions opposing the topic, sourced from
         reputable and credible publications and experts.""",
@@ -115,16 +114,15 @@ def generate_text(llm, topic,depth):
         into a cohesive report.""",
         agent=writer,
         expected_output="""A well-structured debate transcript featuring opening
-        statements, rebuttals based on pro_topic and con_topic outputs, and
-        closing remarks from both sides, followed by an impartial summary that
+        statements, rebuttals, and closing statements from both sides, followed by an impartial summary that
         captures the essence of the debate.
         Follow the format given to the debate manager""",
-        context = [task_manager,task_pro,task_con]
+        context = [task_manager,task_proponent,task_oppostion]
     )
 
     crew = Crew(
-        agents=[manager, pro_topic, con_topic, writer],
-        tasks=[task_manager, task_pro, task_con, task_writer],
+        agents=[manager, proponent, opposition, writer],
+        tasks=[task_manager, task_proponent, task_oppostion, task_writer],
         verbose=2,
         context={"topic": topic}
     )
