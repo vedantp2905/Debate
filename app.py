@@ -83,7 +83,7 @@ def generate_text(llm, topic,depth):
                    4- The total rebuttal rounds should be equal to the: {depth}
                    5- The first rebuttal round should be based on opening statements of the debaters.
                    6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebuttal round.
-                   7- Each debater must give a short and concise closing argument"""
+                   7- Each debater must give a short and concise closing argument""",
     agent=manager,
     expected_output="Successful management of the debate according to the task description"
 )
