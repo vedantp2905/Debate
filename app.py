@@ -84,8 +84,7 @@ def generate_text(llm, topic,depth):
                    5- The first rebuttal round should be based on opening statements of the debaters.
                    6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebuttal round.
                    7- Each debater must give a short and concise closing argument
-                   8- Give each debater a name based on the topic {topic}"""
-                   ,
+                   8- Give each debater a name based on the topic: {topic}""",
     agent=manager,
     expected_output="Successful management of the debate according to the task description"
 )
@@ -95,8 +94,7 @@ def generate_text(llm, topic,depth):
         agent=proponent,
         expected_output="""A comprehensive list of compelling evidence, statistics,
         and expert opinions supporting the topic, sourced from reputable and
-        credible publications and experts.
-        Arguments based on your research and evidence""",
+        credible publications and experts.""",
         tools=[search_tool],
         context=[task_manager]
     )
@@ -106,8 +104,7 @@ def generate_text(llm, topic,depth):
         agent=opposition,
         expected_output="""A comprehensive list of compelling evidence,
         statistics, and expert opinions opposing the topic, sourced from
-        reputable and credible publications and experts.
-        Arguments based on your research and evidence""",
+        reputable and credible publications and experts.""",
         tools=[search_tool],
         context=[task_manager]  # Pass the task_manager as context
     )
