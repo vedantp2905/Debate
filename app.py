@@ -3,9 +3,8 @@ import os
 import asyncio
 from docx import Document
 from langchain_groq import ChatGroq
-from openai import OpenAI
-import streamlit as st
 from langchain_openai import ChatOpenAI
+import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
 from crewai import Agent, Task, Crew
 from langchain_community.tools import DuckDuckGoSearchRun
@@ -28,7 +27,7 @@ def generate_text(llm, topic,depth):
     and resolving unforeseen issues. Decisive and calm under pressure, ensuring
     successful and engaging debates.""",
     verbose=True,
-    allow_delegation=True,
+    allow_delegation=False,
     llm=llm
 )
 
