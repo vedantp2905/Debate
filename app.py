@@ -89,11 +89,13 @@ def generate_text(llm, topic,depth):
 )
 
     task_proponent = Task(
-        description=f'Research and Gather Evidence on {topic}',
+        description=f'''Research and Gather Evidence on {topic}.
+                        Frame arguments based on the research and Evidence''',
         agent=proponent,
         expected_output="""A comprehensive list of compelling evidence, statistics,
         and expert opinions supporting the topic, sourced from reputable and
-        credible publications and experts.""",
+        credible publications and experts.
+        Provide arguments based on your research and evidence""",
         tools=[search_tool],
         context=[task_manager]
     )
