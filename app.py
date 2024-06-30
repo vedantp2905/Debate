@@ -1,4 +1,5 @@
 from io import BytesIO
+import re
 import os
 import asyncio
 from docx import Document
@@ -8,84 +9,91 @@ import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
 from crewai import Agent, Task, Crew
 from langchain_community.tools import DuckDuckGoSearchRun
+import pandas as pd
+
 
 search_tool = DuckDuckGoSearchRun(
-        name="duckduckgo_search",
-        description="""Search the web using DuckDuckGo. Give argument -
-                    {"query": "<Whatever you want to search>"}""",
-    )
+    name="duckduckgo_search",
+    description="""Search the web using DuckDuckGo. Give argument -
+                {"query": "<Whatever you want to search>"}""",
+)
 
-def generate_text(llm, topic,depth):
+def set_column_width_and_wrap(workbook, worksheet, df):
+    for idx, col in enumerate(df.columns):
+        max_len = max(df[col].astype(str).apply(len).max(), len(col)) + 2
+        cell_format = workbook.add_format({'text_wrap': True})
+        worksheet.set_column(idx, idx, max_len, cell_format)
 
+def generate_text(llm, topic, depth):
     inputs = {'topic': topic}
    
     manager = Agent(
-    role='Debate Manager',
-    goal='Ensure adherence to debate guidelines and format',
-    backstory="""Experienced Debate Manager adept at overseeing structured debates
-    across various domains. Skilled in maintaining decorum, managing time efficiently,
-    and resolving unforeseen issues. Decisive and calm under pressure, ensuring
-    successful and engaging debates.""",
-    verbose=True,
-    allow_delegation=False,
-    llm=llm
-)
+        role='Debate Manager',
+        goal='Ensure adherence to debate guidelines and format',
+        backstory="""Experienced Debate Manager adept at overseeing structured debates
+        across various domains. Skilled in maintaining decorum, managing time efficiently,
+        and resolving unforeseen issues. Decisive and calm under pressure, ensuring
+        successful and engaging debates.""",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm
+    )
 
     proponent = Agent(
-    role='Proponent of Topic',
-    goal="""Present the most convincing arguments in favor of the topic,
-    using factual evidence and persuasive rhetoric.""",
-    backstory="""You are an exceptional debater, having recently won the prestigious
-    World Universities Debating Championship. Your expertise lies in constructing
-    compelling arguments that strongly support your stance on any given topic.
-    You possess a keen ability to present facts persuasively, ensuring your
-    points are both convincing and grounded in reality.""",
-    verbose=True,
-    allow_delegation=False,
-    llm=llm
+        role='Proponent of Topic',
+        goal="""Present the most convincing arguments in favor of the topic,
+        using factual evidence and persuasive rhetoric.""",
+        backstory="""You are an exceptional debater, having recently won the prestigious
+        World Universities Debating Championship. Your expertise lies in constructing
+        compelling arguments that strongly support your stance on any given topic.
+        You possess a keen ability to present facts persuasively, ensuring your
+        points are both convincing and grounded in reality.""",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm
     )
 
     opposition = Agent(
-    role='Opponent of Topic',
-    goal="""Present the most convincing arguments against the topic,
-    using logical reasoning and ethical considerations.""",
-    backstory="""You are a distinguished debater, recognized for your analytical
-    skills and ethical reasoning. Recently, you were a finalist in the World
-    Universities Debating Championship. Your strength lies in deconstructing
-    arguments and highlighting potential flaws and ethical issues. You excel at
-    presenting well-rounded and thoughtful counterarguments.""",
-    verbose=True,
-    allow_delegation=False,
-    llm=llm
+        role='Opponent of Topic',
+        goal="""Present the most convincing arguments against the topic,
+        using logical reasoning and ethical considerations.""",
+        backstory="""You are a distinguished debater, recognized for your analytical
+        skills and ethical reasoning. Recently, you were a finalist in the World
+        Universities Debating Championship. Your strength lies in deconstructing
+        arguments and highlighting potential flaws and ethical issues. You excel at
+        presenting well-rounded and thoughtful counterarguments.""",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm
     )
 
     writer = Agent(
-    role='Debate Summarizer',
-    goal="""Provide an unbiased summary of both sides' arguments. Synthesize the key points,
-    evidence, and rhetorical strategies used by each side into a cohesive
-    report that helps the audience understand the full scope of the debate.""",
-    backstory="""You are a highly respected journalist and author, known for
-    your impartiality and clarity in reporting complex issues. You have
-    moderated presidential debates and written award-winning articles that
-    break down intricate topics for the general public. Your reputation is
-    built on your ability to remain neutral, to synthesize diverse viewpoints,
-    and to articulate complex arguments in a way that's accessible to all.""",
-    verbose=True,
-    allow_delegation=False,
-    llm=llm
+        role='Debate Summarizer',
+        goal="""Provide an unbiased summary of both sides' arguments. Synthesize the key points,
+        evidence, and rhetorical strategies used by each side into a cohesive
+        report that helps the audience understand the full scope of the debate.""",
+        backstory="""You are a highly respected journalist and author, known for
+        your impartiality and clarity in reporting complex issues. You have
+        moderated presidential debates and written award-winning articles that
+        break down intricate topics for the general public. Your reputation is
+        built on your ability to remain neutral, to synthesize diverse viewpoints,
+        and to articulate complex arguments in a way that's accessible to all.""",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm
     )
 
     task_manager = Task(
-    description=f"""Manage the debate flow according to the specified format:
-                   2- Both the debaters must present short concise opening statements starting with the proponent
-                   3- The debaters must rebuttal based on the output of their opponent starting with the proponent 
-                   4- The total rebuttal rounds should be equal to the: {depth}
-                   5- The first rebuttal round should be based on opening statements of the debaters.
-                   6- Each subsequent rebuttal round must build on the previous rebuttal round and dwelve deeper into the points presented in the previous rebuttal round.
-                   7- Each debater must give a short and concise closing argument""",
-    agent=manager,
-    expected_output="Successful management of the debate according to the task description"
-)
+        description=f"""Manage the debate flow according to the specified format:
+                       2- Both the debaters must present short concise opening statements starting with the proponent
+                       3- The debaters must rebuttal based on the output of their opponent starting with the proponent 
+                       4- The total rebuttal rounds should be equal to the: {depth}
+                       5- The first rebuttal round should be based on opening statements of the debaters.
+                       6- Each subsequent rebuttal round must build on the previous rebuttal round and delve deeper into the points presented in the previous rebuttal round.
+                       7- Each debater must give a short and concise closing argument""",
+        agent=manager,
+        expected_output="Successful management of the debate according to the task description"
+    )
 
     task_proponent = Task(
         description=f'''Research and Gather Evidence on {topic}.''',
@@ -97,7 +105,7 @@ def generate_text(llm, topic,depth):
         context=[task_manager]
     )
 
-    task_oppostion = Task(
+    task_opposition = Task(
         description=f'Research and Gather Evidence on {topic}',
         agent=opposition,
         expected_output="""A comprehensive list of compelling evidence,
@@ -116,28 +124,26 @@ def generate_text(llm, topic,depth):
         statements, rebuttals, and closing statements from both sides, followed by an impartial summary that
         captures the essence of the debate.
         Follow the format given to the debate manager""",
-        context = [task_manager,task_proponent,task_oppostion]
+        context=[task_manager, task_proponent, task_opposition]
     )
 
     crew = Crew(
         agents=[manager, proponent, opposition, writer],
-        tasks=[task_manager, task_proponent, task_oppostion, task_writer],
+        tasks=[task_manager, task_proponent, task_opposition, task_writer],
         verbose=2,
         context={"topic": topic}
     )
-
 
     result = crew.kickoff(inputs=inputs)
     return result
 
 def main():
-    
     st.header('Debate Generator')
     mod = None
         
     with st.sidebar:
         with st.form('Gemini/OpenAI/Groq'):
-            model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI','Groq'))
+            model = st.radio('Choose Your LLM', ('Gemini', 'OpenAI', 'Groq'))
             api_key = st.text_input(f'Enter your API key', type="password")
             submitted = st.form_submit_button("Submit")
 
@@ -150,13 +156,12 @@ def main():
                     asyncio.set_event_loop(loop)
 
                 os.environ["OPENAI_API_KEY"] = api_key
-                llm = ChatOpenAI(temperature=0.6, max_tokens=2000)
+                llm = ChatOpenAI(model='gpt-4-turbo', temperature=0.6, max_tokens=2000, api_key=api_key)
                 print("OpenAI Configured")
                 return llm
 
             llm = asyncio.run(setup_OpenAI())
-            mod = 'Gemini'
-
+            mod = 'OpenAI'
 
         elif model == 'Gemini':
             async def setup_gemini():
@@ -177,7 +182,6 @@ def main():
             llm = asyncio.run(setup_gemini())
             mod = 'Gemini'
 
-            
         elif model == 'Groq':
             async def setup_groq():
                 loop = asyncio.get_event_loop()
@@ -186,8 +190,8 @@ def main():
                     asyncio.set_event_loop(loop)
 
                 llm = ChatGroq(
-                    api_key = api_key,
-                    model = 'llama3-70b-8192'
+                    api_key=api_key,
+                    model='llama3-70b-8192'
                 )
                 return llm
 
@@ -197,35 +201,71 @@ def main():
         topic = st.text_input("Enter the debate topic:")
         depth = st.text_input("Enter the depth required:")
 
-
         if st.button("Generate Content"):
             with st.spinner("Generating content..."):
                 generated_content = generate_text(llm, topic, depth)
 
-                content_lines = generated_content.split('\n')
-                first_line = content_lines[0]
-                remaining_content = '\n'.join(content_lines[1:])
+                # Display raw content for debugging
+                st.markdown(generated_content)
 
-                st.markdown(first_line)
-                st.markdown(remaining_content)
+                # Process the generated content
+                sections = re.split(r'\*\*(.*?):\*\*', generated_content)
+                proponent_lines = []
+                opponent_lines = []
 
+                for i in range(1, len(sections), 2):
+                    speaker = sections[i].strip()
+                    content = sections[i+1].strip()
+                    
+                    if "Proponent" in speaker:
+                        proponent_lines.append(content)
+                        if len(opponent_lines) < len(proponent_lines):
+                            opponent_lines.append("")
+                    elif "Opponent" in speaker:
+                        opponent_lines.append(content)
+                        if len(proponent_lines) < len(opponent_lines):
+                            proponent_lines.append("")
 
-                doc = Document()
+                # Ensure both lists have the same length
+                max_length = max(len(proponent_lines), len(opponent_lines))
+                proponent_lines += [""] * (max_length - len(proponent_lines))
+                opponent_lines += [""] * (max_length - len(opponent_lines))
 
-                # Option to download content as a Word document
-                doc.add_heading(topic, 0)
-                doc.add_paragraph(first_line)
-                doc.add_paragraph(remaining_content)
+                # Create a DataFrame
+                data = {'Proponent': proponent_lines, 'Opponent': opponent_lines}
+                df = pd.DataFrame(data)
 
-                buffer = BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
+                # Save DataFrame to Excel
+                excel_buffer = BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Debate')
+                    workbook = writer.book
+                    worksheet = writer.sheets['Debate']
+                    
+                    # Adjust column widths and wrap text
+                    for idx, col in enumerate(df.columns):
+                        series = df[col].dropna()
+                        max_len = max((
+                            series.astype(str).map(len).max(),  # max length of values
+                            len(col)  # length of column name
+                        )) + 2  # adding a little extra space
+                        worksheet.set_column(idx, idx, max_len)
+                    
+                    # Add text wrapping
+                    wrap_format = workbook.add_format({'text_wrap': True})
+                    worksheet.set_column('A:B', None, wrap_format)
 
+                # Rewind the buffer
+                excel_buffer.seek(0)
+
+                # Create a download button for Excel file
                 st.download_button(
-                    label="Download as Word Document",
-                    data=buffer,
-                    file_name=f"{topic}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    label="Download as Excel",
+                    data=excel_buffer,
+                    file_name=f"{topic}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
+
+
 if __name__ == "__main__":
     main()
