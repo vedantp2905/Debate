@@ -139,7 +139,7 @@ def generate_text(llm, topic, depth):
 def main():
     st.header('Debate Generator')
     mod = None
-    
+
     # Initialize session state
     if 'generated_content' not in st.session_state:
         st.session_state.generated_content = None
@@ -149,6 +149,8 @@ def main():
         st.session_state.depth = ""
     if 'df' not in st.session_state:
         st.session_state.df = None
+    if 'excel_buffer' not in st.session_state:
+        st.session_state.excel_buffer = None
         
     with st.sidebar:
         with st.form('Gemini/OpenAI/Groq'):
@@ -207,74 +209,84 @@ def main():
             llm = asyncio.run(setup_groq())
             mod = 'Groq'
 
-        topic = st.text_input("Enter the debate topic:")
-        depth = st.text_input("Enter the depth required:")
+        topic = st.text_input("Enter the debate topic:", value=st.session_state.topic)
+        depth = st.text_input("Enter the depth required:", value=st.session_state.depth)
+        st.session_state.topic = topic
+        st.session_state.depth = depth
 
         if st.button("Generate Content"):
             with st.spinner("Generating content..."):
-                generated_content = generate_text(llm, topic, depth)
+                st.session_state.generated_content = generate_text(llm, topic, depth)
+                process_content()
 
-                # Display raw content for debugging
-                st.markdown(generated_content)
+    if st.session_state.generated_content:
+        # Display raw content for debugging
+        st.markdown(st.session_state.generated_content)
 
-                # Process the generated content
-                sections = re.split(r'\*\*(.*?):\*\*', generated_content)
-                proponent_lines = []
-                opponent_lines = []
+        # Display the DataFrame if it exists
+        if st.session_state.df is not None:
+            st.dataframe(st.session_state.df)
 
-                for i in range(1, len(sections), 2):
-                    speaker = sections[i].strip()
-                    content = sections[i+1].strip()
-                    
-                    if "Proponent" in speaker:
-                        proponent_lines.append(content)
-                        if len(opponent_lines) < len(proponent_lines):
-                            opponent_lines.append("")
-                    elif "Opponent" in speaker:
-                        opponent_lines.append(content)
-                        if len(proponent_lines) < len(opponent_lines):
-                            proponent_lines.append("")
+        # Create a download button for Excel file if the buffer exists
+        if st.session_state.excel_buffer is not None:
+            st.download_button(
+                label="Download as Excel",
+                data=st.session_state.excel_buffer,
+                file_name=f"{st.session_state.topic}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-                # Ensure both lists have the same length
-                max_length = max(len(proponent_lines), len(opponent_lines))
-                proponent_lines += [""] * (max_length - len(proponent_lines))
-                opponent_lines += [""] * (max_length - len(opponent_lines))
+def process_content():
+    # Process the generated content
+    sections = re.split(r'\*\*(.*?):\*\*', st.session_state.generated_content)
+    proponent_lines = []
+    opponent_lines = []
 
-                # Create a DataFrame
-                data = {'Proponent': proponent_lines, 'Opponent': opponent_lines}
-                df = pd.DataFrame(data)
+    for i in range(1, len(sections), 2):
+        speaker = sections[i].strip()
+        content = sections[i+1].strip()
+        
+        if "Proponent" in speaker:
+            proponent_lines.append(content)
+            if len(opponent_lines) < len(proponent_lines):
+                opponent_lines.append("")
+        elif "Opponent" in speaker:
+            opponent_lines.append(content)
+            if len(proponent_lines) < len(opponent_lines):
+                proponent_lines.append("")
 
-                # Save DataFrame to Excel
-                excel_buffer = BytesIO()
-                with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False, sheet_name='Debate')
-                    workbook = writer.book
-                    worksheet = writer.sheets['Debate']
-                    
-                    # Adjust column widths and wrap text
-                    for idx, col in enumerate(df.columns):
-                        series = df[col].dropna()
-                        max_len = max((
-                            series.astype(str).map(len).max(),  # max length of values
-                            len(col)  # length of column name
-                        )) + 2  # adding a little extra space
-                        worksheet.set_column(idx, idx, max_len)
-                    
-                    # Add text wrapping
-                    wrap_format = workbook.add_format({'text_wrap': True})
-                    worksheet.set_column('A:B', None, wrap_format)
+    # Ensure both lists have the same length
+    max_length = max(len(proponent_lines), len(opponent_lines))
+    proponent_lines += [""] * (max_length - len(proponent_lines))
+    opponent_lines += [""] * (max_length - len(opponent_lines))
 
-                # Rewind the buffer
-                excel_buffer.seek(0)
+    # Create a DataFrame and store in session state
+    data = {'Proponent': proponent_lines, 'Opponent': opponent_lines}
+    st.session_state.df = pd.DataFrame(data)
 
-                # Create a download button for Excel file
-                st.download_button(
-                    label="Download as Excel",
-                    data=excel_buffer,
-                    file_name=f"{topic}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+    # Create Excel file
+    excel_buffer = BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        st.session_state.df.to_excel(writer, index=False, sheet_name='Debate')
+        workbook = writer.book
+        worksheet = writer.sheets['Debate']
+        
+        # Adjust column widths and wrap text
+        for idx, col in enumerate(st.session_state.df.columns):
+            series = st.session_state.df[col].dropna()
+            max_len = max((
+                series.astype(str).map(len).max(),  # max length of values
+                len(col)  # length of column name
+            )) + 2  # adding a little extra space
+            worksheet.set_column(idx, idx, max_len)
+        
+        # Add text wrapping
+        wrap_format = workbook.add_format({'text_wrap': True})
+        worksheet.set_column('A:B', None, wrap_format)
 
+    # Rewind the buffer and store in session state
+    excel_buffer.seek(0)
+    st.session_state.excel_buffer = excel_buffer.getvalue()
 
 if __name__ == "__main__":
     main()
