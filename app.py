@@ -220,12 +220,8 @@ def main():
                 process_content()
 
     if st.session_state.generated_content:
-        # Display raw content for debugging
-        st.markdown(st.session_state.generated_content)
 
-        # Display the DataFrame if it exists
-        if st.session_state.df is not None:
-            st.dataframe(st.session_state.df)
+        st.markdown(st.session_state.generated_content)
 
         # Create a download button for Excel file if the buffer exists
         if st.session_state.excel_buffer is not None:
