@@ -4,12 +4,71 @@ import os
 import asyncio
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
+import requests
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
 from crewai import Agent, Task, Crew
 from langchain_community.tools import DuckDuckGoSearchRun
 import pandas as pd
 from langchain_community.tools import DuckDuckGoSearchResults
+
+def verify_gemini_api_key(api_key):
+    API_VERSION = 'v1'
+    api_url = f"https://generativelanguage.googleapis.com/{API_VERSION}/models?key={api_key}"
+    
+    try:
+        response = requests.get(api_url, headers={'Content-Type': 'application/json'})
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        
+        # If we get here, it means the request was successful
+        return True
+    
+    except requests.exceptions.HTTPError as e:
+        
+        return False
+    
+    except requests.exceptions.RequestException as e:
+        # For any other request-related exceptions
+        raise ValueError(f"An error occurred: {str(e)}")
+
+def verify_gpt_api_key(api_key):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # Using a simple request to the models endpoint
+    response = requests.get("https://api.openai.com/v1/models", headers=headers)
+    
+    if response.status_code == 200:
+        return True
+    elif response.status_code == 401:
+        return False
+    else:
+        print(f"Unexpected status code: {response.status_code}")
+        return False
+    
+def verify_groq_api_key(api_key):
+    api_url = "https://api.groq.com/openai/v1/models"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        
+        # If we get here, it means the request was successful
+        return True
+    
+    except requests.exceptions.HTTPError as e:
+        
+        return False
+    
+    except requests.exceptions.RequestException as e:
+        # For any other request-related exceptions
+        raise ValueError(f"An error occurred: {str(e)}")
 
 search_tool = DuckDuckGoSearchRun(
     name="duckduckgo_search",
@@ -138,7 +197,7 @@ def generate_text(llm, topic, depth):
 
 def main():
     st.header('Debate Generator')
-    mod = None
+    validity_model= False
 
     # Initialize session state
     if 'generated_content' not in st.session_state:
@@ -158,7 +217,27 @@ def main():
             api_key = st.text_input(f'Enter your API key', type="password")
             submitted = st.form_submit_button("Submit")
 
-    if api_key:
+        if api_key:
+            if model == "Gemini":
+                validity_model = verify_gemini_api_key(api_key)
+                if validity_model ==True:
+                    st.write(f"Valid {model} API key")
+                else:
+                    st.write(f"Invalid {model} API key")
+            elif model == "OpenAI":
+                validity_model = verify_gpt_api_key(api_key)
+                if validity_model ==True:
+                    st.write(f"Valid {model} API key")
+                else:
+                    st.write(f"Invalid {model} API key")            
+            elif model == "Groq":
+                validity_model = verify_groq_api_key(api_key)
+                if validity_model ==True:
+                    st.write(f"Valid {model} API key")
+                else:
+                    st.write(f"Invalid {model} API key")
+                
+    if validity_model==True:
         if model == 'OpenAI':
             async def setup_OpenAI():
                 loop = asyncio.get_event_loop()
@@ -172,7 +251,6 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_OpenAI())
-            mod = 'OpenAI'
 
         elif model == 'Gemini':
             async def setup_gemini():
@@ -191,7 +269,6 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_gemini())
-            mod = 'Gemini'
 
         elif model == 'Groq':
             async def setup_groq():
@@ -207,7 +284,6 @@ def main():
                 return llm
 
             llm = asyncio.run(setup_groq())
-            mod = 'Groq'
 
         topic = st.text_input("Enter the debate topic:", value=st.session_state.topic)
         depth = st.text_input("Enter the depth required:", value=st.session_state.depth)
