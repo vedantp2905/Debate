@@ -2,6 +2,7 @@ from io import BytesIO
 import re
 import os
 import asyncio
+import time
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 import requests
@@ -10,7 +11,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from crewai import Agent, Task, Crew
 from langchain_community.tools import DuckDuckGoSearchRun
 import pandas as pd
-from langchain_community.tools import DuckDuckGoSearchResults
 
 def verify_gemini_api_key(api_key):
     API_VERSION = 'v1'
@@ -195,6 +195,57 @@ def generate_text(llm, topic, depth):
     result = crew.kickoff(inputs=inputs)
     return result
 
+def stream_string(text, delay=0.03):
+    placeholder = st.empty()
+    for i in range(len(text) + 1):
+        placeholder.markdown(text[:i])
+        time.sleep(delay)
+        
+def process_content():
+    sections = re.split(r'\*\*(.*?):\*\*', st.session_state.generated_content)
+    proponent_lines = []
+    opponent_lines = []
+
+    for i in range(1, len(sections), 2):
+        speaker = sections[i].strip()
+        content = sections[i+1].strip()
+        
+        if "Proponent" in speaker:
+            proponent_lines.append(content)
+            if len(opponent_lines) < len(proponent_lines):
+                opponent_lines.append("")
+        elif "Opponent" in speaker:
+            opponent_lines.append(content)
+            if len(proponent_lines) < len(opponent_lines):
+                proponent_lines.append("")
+
+    max_length = max(len(proponent_lines), len(opponent_lines))
+    proponent_lines += [""] * (max_length - len(proponent_lines))
+    opponent_lines += [""] * (max_length - len(opponent_lines))
+
+    data = {'Proponent': proponent_lines, 'Opponent': opponent_lines}
+    st.session_state.df = pd.DataFrame(data)
+
+    excel_buffer = BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        st.session_state.df.to_excel(writer, index=False, sheet_name='Debate')
+        workbook = writer.book
+        worksheet = writer.sheets['Debate']
+        
+        for idx, col in enumerate(st.session_state.df.columns):
+            series = st.session_state.df[col].dropna()
+            max_len = max((
+                series.astype(str).map(len).max(),
+                len(col)
+            )) + 2
+            worksheet.set_column(idx, idx, max_len)
+        
+        wrap_format = workbook.add_format({'text_wrap': True})
+        worksheet.set_column('A:B', None, wrap_format)
+
+    excel_buffer.seek(0)
+    st.session_state.excel_buffer = excel_buffer.getvalue()
+            
 def main():
     st.header('Debate Generator')
     validity_model= False
@@ -295,10 +346,9 @@ def main():
                 st.session_state.generated_content = generate_text(llm, topic, depth)
                 process_content()
 
-    if st.session_state.generated_content:
-
-        st.markdown(st.session_state.generated_content)
-
+        if st.session_state.generated_content:
+            stream_string(st.session_state.generated_content)    
+            
         # Create a download button for Excel file if the buffer exists
         if st.session_state.excel_buffer is not None:
             st.download_button(
@@ -307,58 +357,6 @@ def main():
                 file_name=f"{st.session_state.topic}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-def process_content():
-    # Process the generated content
-    sections = re.split(r'\*\*(.*?):\*\*', st.session_state.generated_content)
-    proponent_lines = []
-    opponent_lines = []
-
-    for i in range(1, len(sections), 2):
-        speaker = sections[i].strip()
-        content = sections[i+1].strip()
-        
-        if "Proponent" in speaker:
-            proponent_lines.append(content)
-            if len(opponent_lines) < len(proponent_lines):
-                opponent_lines.append("")
-        elif "Opponent" in speaker:
-            opponent_lines.append(content)
-            if len(proponent_lines) < len(opponent_lines):
-                proponent_lines.append("")
-
-    # Ensure both lists have the same length
-    max_length = max(len(proponent_lines), len(opponent_lines))
-    proponent_lines += [""] * (max_length - len(proponent_lines))
-    opponent_lines += [""] * (max_length - len(opponent_lines))
-
-    # Create a DataFrame and store in session state
-    data = {'Proponent': proponent_lines, 'Opponent': opponent_lines}
-    st.session_state.df = pd.DataFrame(data)
-
-    # Create Excel file
-    excel_buffer = BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-        st.session_state.df.to_excel(writer, index=False, sheet_name='Debate')
-        workbook = writer.book
-        worksheet = writer.sheets['Debate']
-        
-        # Adjust column widths and wrap text
-        for idx, col in enumerate(st.session_state.df.columns):
-            series = st.session_state.df[col].dropna()
-            max_len = max((
-                series.astype(str).map(len).max(),  # max length of values
-                len(col)  # length of column name
-            )) + 2  # adding a little extra space
-            worksheet.set_column(idx, idx, max_len)
-        
-        # Add text wrapping
-        wrap_format = workbook.add_format({'text_wrap': True})
-        worksheet.set_column('A:B', None, wrap_format)
-
-    # Rewind the buffer and store in session state
-    excel_buffer.seek(0)
-    st.session_state.excel_buffer = excel_buffer.getvalue()
 
 if __name__ == "__main__":
     main()
