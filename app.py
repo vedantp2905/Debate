@@ -194,12 +194,6 @@ def generate_text(llm, topic, depth):
 
     result = crew.kickoff(inputs=inputs)
     return result
-
-def stream_string(text, delay=0.03):
-    placeholder = st.empty()
-    for i in range(len(text) + 1):
-        placeholder.markdown(text[:i])
-        time.sleep(delay)
         
 def process_content():
     sections = re.split(r'\*\*(.*?):\*\*', st.session_state.generated_content)
@@ -347,7 +341,7 @@ def main():
                 process_content()
 
         if st.session_state.generated_content:
-            stream_string(st.session_state.generated_content)    
+            st.write(st.session_state.generated_content)    
             
         # Create a download button for Excel file if the buffer exists
         if st.session_state.excel_buffer is not None:
